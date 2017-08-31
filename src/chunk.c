@@ -310,9 +310,11 @@ chunk_recycle(tsdn_t *tsdn, arena_t *arena, chunk_hooks_t *chunk_hooks,
 	if (dalloc_node && node != NULL)
 		arena_node_dalloc(tsdn, arena, node);
 	if (*zero) {
-		if (!zeroed)
+		if (!zeroed) {
+			if (config_valgrind)
+				JEMALLOC_VALGRIND_MAKE_MEM_UNDEFINED(ret, size);
 			memset(ret, 0, size);
-		else if (config_debug) {
+		} else if (config_debug) {
 			size_t i;
 			size_t *p = (size_t *)(uintptr_t)ret;
 
