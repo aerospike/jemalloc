@@ -2950,7 +2950,17 @@ arena_dalloc_small(tsdn_t *tsdn, arena_t *arena, arena_chunk_t *chunk,
 	}
 	bitselm = arena_bitselm_get_mutable(chunk, pageind);
 	arena_dalloc_bin(tsdn, arena, chunk, ptr, pageind, bitselm);
-	arena_decay_tick(tsdn, arena);
+
+	// AER-5943: Don't recreate TLS data when the dynamic linker free()s
+	// TLS on thread exit, as it would lead to a memory leak.
+	//
+	// We (heuristically) recognize this situation by comparing
+	// tsd_arenas_tdata to NULL. In this case, we don't count a decay tick,
+	// which would otherwise recreate tsd_arenas_tdata.
+
+	if (tsdn_null(tsdn) || tsd_arenas_tdata_get(tsdn_tsd(tsdn)) != NULL) {
+		arena_decay_tick(tsdn, arena);
+	}
 }
 
 #ifdef JEMALLOC_JET
