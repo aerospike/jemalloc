@@ -485,7 +485,12 @@ tcaches_create(tsd_t *tsd, unsigned *r_ind) {
 		goto label_return;
 	}
 
-	arena = arena_ichoose(tsd, NULL);
+    // Consistently pick the application arena when creating a tcache. This
+    // ensures that creation and destruction (as long as they happen on the same
+    // thread) use the same arena. Otherwise, we can end up adding a tcache to
+    // one arena's tcache list on creation and "removing" it from another
+    // arena's tcache list on destruction.
+	arena = arena_choose(tsd, NULL);
 	if (unlikely(arena == NULL)) {
 		err = true;
 		goto label_return;
